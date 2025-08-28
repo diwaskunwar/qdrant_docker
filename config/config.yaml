@@ -1,0 +1,167 @@
+# Production Qdrant Configuration for High-Throughput Distributed Deployment
+log_level: INFO
+
+# Logging configuration for production
+logger:
+  format: json
+  on_disk:
+    enabled: true
+    log_file: /qdrant/storage/qdrant.log
+    log_level: INFO
+    format: json
+
+# Storage configuration optimized for high throughput
+storage:
+  # Where to store all the data
+  storage_path: /qdrant/storage
+
+  # Where to store snapshots
+  snapshots_path: /qdrant/storage/snapshots
+
+  snapshots_config:
+    snapshots_storage: local
+
+  # Where to store temporary files
+  temp_path: /qdrant/storage/temp
+
+  # Store payloads on disk to save RAM for vectors
+  on_disk_payload: true
+
+  # Maximum number of concurrent updates to shard replicas
+  # Set to null for maximum concurrency
+  update_concurrency: null
+
+  # Write-ahead-log related configuration
+  wal:
+    # Larger WAL segments for better batch performance
+    wal_capacity_mb: 128
+    # Create more segments ahead for high-throughput writes
+    wal_segments_ahead: 2
+
+  # Normal node configuration
+  node_type: "Normal"
+
+  # Performance configuration optimized for high throughput
+  performance:
+    # Use all available cores for search operations
+    max_search_threads: 0
+
+    # Allow unlimited optimization threads for better performance
+    max_optimization_threads: 0
+
+    # Use all available CPUs for optimization
+    optimizer_cpu_budget: 0
+
+    # Remove rate limiting for high-throughput scenarios
+    update_rate_limit: null
+
+    # Allow more concurrent shard transfers
+    incoming_shard_transfers_limit: 3
+    outgoing_shard_transfers_limit: 3
+
+  # Optimizer configuration for high-throughput batch operations
+  optimizers:
+    # Lower threshold for better performance with frequent updates
+    deleted_threshold: 0.15
+
+    # Lower minimum for more frequent optimization
+    vacuum_min_vector_number: 500
+
+    # Fewer segments for better throughput (vs latency)
+    default_segment_number: 2
+
+    # Larger segments for better batch performance
+    max_segment_size_kb: 2000000
+
+    # Higher threshold for memory mapping (keep more in RAM)
+    memmap_threshold_kb: 100000
+
+    # Higher indexing threshold for batch operations
+    indexing_threshold_kb: 50000
+
+    # More frequent flushes for better consistency
+    flush_interval_sec: 3
+
+    # Allow more optimization threads
+    max_optimization_threads: null
+
+  # Default parameters for HNSW Index optimized for high throughput
+  hnsw_index:
+    # Balanced M for good performance and memory usage
+    m: 16
+
+    # Higher ef_construct for better index quality
+    ef_construct: 200
+
+    # Higher threshold for full scan vs HNSW
+    full_scan_threshold_kb: 20000
+
+    # Use more threads for index building
+    max_indexing_threads: 0
+
+    # Keep HNSW index in memory for better performance
+    on_disk: false
+
+    # Custom M for payload index
+    payload_m: 16
+
+  # Default collection configuration for high throughput
+  collection:
+    # Higher replication factor for better availability
+    replication_factor: 2
+
+    # Require majority for writes
+    write_consistency_factor: 1
+
+    # Default vector configuration
+    vectors:
+      # Keep vectors in memory for better performance
+      on_disk: false
+
+    # No default quantization (configure per collection as needed)
+    quantization: null
+
+# Service configuration optimized for high throughput
+service:
+  # Larger request size for batch operations
+  max_request_size_mb: 512
+
+  # Use all available cores for serving API
+  max_workers: 0
+
+  # Bind to all interfaces
+  host: 0.0.0.0
+
+  # Standard ports
+  http_port: 6333
+  grpc_port: 6334
+
+  # Enable CORS for web applications
+  enable_cors: true
+
+  # Disable TLS for internal cluster communication (enable for production with external access)
+  enable_tls: false
+
+  # Disable client certificate verification
+  verify_https_client_certificate: false
+
+# Cluster configuration for distributed deployment
+cluster:
+  # Enable clustering
+  enabled: true
+
+  # P2P configuration
+  p2p:
+    # Port for internal communication between peers
+    port: 6335
+
+    # Disable TLS for internal communication (enable for production)
+    enable_tls: false
+
+  # Consensus configuration optimized for performance
+  consensus:
+    # Faster tick period for better responsiveness
+    tick_period_ms: 50
+
+# Disable telemetry for production
+telemetry_disabled: true

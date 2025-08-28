@@ -1,0 +1,48 @@
+
+
+services:
+  qdrant_primary_node:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_primary_node
+    volumes:
+      - ${QDRANT__STORAGE__VOLUME}/primary_node:/qdrant/storage
+      - ./config/production.yaml:/qdrant/config/production.yaml:ro
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+      - "6335:6335"
+    environment:
+      - QDRANT__CLUSTER__ENABLED=true
+      - QDRANT__CLUSTER__P2P__PORT=6335
+      - QDRANT__SERVICE__HOST=0.0.0.0
+    command: ["./qdrant", "--config-path", "/qdrant/config/production.yaml", "--uri", "http://qdrant_primary_node:6335"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  qdrant_secondary_node:
+    image: qdrant/qdrant:latest
+    volumes:
+      - ./config/production.yaml:/qdrant/config/production.yaml:ro
+    environment:
+      - QDRANT__CLUSTER__ENABLED=true
+      - QDRANT__CLUSTER__P2P__PORT=6335
+      - QDRANT__SERVICE__HOST=0.0.0.0
+      - QDRANT__CLUSTER__CONSENSUS__BOOTSTRAP_TIMEOUT_SEC=60
+    depends_on:
+      qdrant_primary_node:
+        condition: service_healthy
+    command: ["sh", "-c", "sleep $$(( RANDOM % 30 + 10 )) && ./qdrant --config-path /qdrant/config/production.yaml --bootstrap http://qdrant_primary_node:6335"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+
+volumes:
+  grafana-data: {}
