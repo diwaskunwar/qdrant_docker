@@ -1,55 +1,84 @@
-
-
 services:
-  qdrant_primary_node:
+  qdrant_primary:
     image: qdrant/qdrant:latest
-    container_name: qdrant_primary_node
+    container_name: qdrant_primary
     volumes:
-      - ${QDRANT__STORAGE__VOLUME}/primary_node:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml:ro
+      - ${QDRANT__STORAGE__VOLUME}/primary:/qdrant/storage
+      - ./config/production.yaml:/qdrant/config/production.yaml
+      - ./config/config.yaml:/qdrant/config/config.yaml
     ports:
       - "6333:6333"
-      - "6334:6334"
-      - "6335:6335"
-    command: ["./qdrant", "--config-path", "/qdrant/config/production.yaml", "--uri", "http://qdrant_primary_node:6335"]
+    environment:
+      QDRANT__CLUSTER__ENABLED: "true"
+      QDRANT__LOG_LEVEL: "INFO"
+    command: "./qdrant --config-path /qdrant/config/production.yaml --uri http://qdrant_primary:6335"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  qdrant_secondary_node_1:
+  qdrant_secondary_1:
     image: qdrant/qdrant:latest
+    container_name: qdrant_secondary_1
     volumes:
-      - ${QDRANT__STORAGE__VOLUME}/secondary_node:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml:ro
-    ports:
-      - "6336:6333"
-      - "6337:6334"
+      - ${QDRANT__STORAGE__VOLUME}/secondary_1:/qdrant/storage
+      - ./config/production.yaml:/qdrant/config/production.yaml
+      - ./config/config.yaml:/qdrant/config/config.yaml
     depends_on:
-      - qdrant_primary_node
-    command: ["./qdrant", "--config-path", "/qdrant/config/production.yaml", "--bootstrap", "http://qdrant_primary_node:6335"]
+      - qdrant_primary
+    environment:
+      QDRANT__CLUSTER__ENABLED: "true"
+      QDRANT__LOG_LEVEL: "INFO"
+    command: "./qdrant --config-path /qdrant/config/production.yaml --bootstrap http://qdrant_primary:6335 --uri http://qdrant_secondary_1:6335"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  qdrant_secondary_node_2:
+  qdrant_secondary_2:
     image: qdrant/qdrant:latest
+    container_name: qdrant_secondary_2
     volumes:
-      - ${QDRANT__STORAGE__VOLUME}/secondary_node_2:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml:ro
-    ports:
-      - "6338:6333"
-      - "6339:6334"
+      - ${QDRANT__STORAGE__VOLUME}/secondary_2:/qdrant/storage
+      - ./config/production.yaml:/qdrant/config/production.yaml
+      - ./config/config.yaml:/qdrant/config/config.yaml
     depends_on:
-      - qdrant_primary_node
-    command: ["./qdrant", "--config-path", "/qdrant/config/production.yaml", "--bootstrap", "http://qdrant_primary_node:6335"]
+      - qdrant_primary
+    environment:
+      QDRANT__CLUSTER__ENABLED: "true"
+      QDRANT__LOG_LEVEL: "INFO"
+    command: "./qdrant --config-path /qdrant/config/production.yaml --bootstrap http://qdrant_primary:6335 --uri http://qdrant_secondary_2:6335"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
-volumes:
-  grafana-data: {}
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    ports:
+      - "6331:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Show only containers from this compose project (default project name is the folder name: qdrant-docker)
+      - DOZZLE_FILTER=label=com.docker.compose.project=qdrant-docker
+      - DOZZLE_TAILSIZE=3000
+      - DOZZLE_LEVEL=info
+
+  glances:
+    image: nicolargo/glances:latest-full
+    container_name: glances
+    restart: unless-stopped
+    pid: host
+    ports:
+      - "6332:61208"
+    environment:
+      - GLANCES_OPT=--webserver
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/os-release:/etc/os-release:ro
