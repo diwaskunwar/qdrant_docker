@@ -7,7 +7,7 @@ services:
       - ./config/production.yaml:/qdrant/config/production.yaml
       - ./config/config.yaml:/qdrant/config/config.yaml
     ports:
-      - "6333:6333"
+      - "${QDRANT__PORT}:6333"
     environment:
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
@@ -61,7 +61,7 @@ services:
     container_name: dozzle
     restart: unless-stopped
     ports:
-      - "6331:8080"
+      - "${DOZZLE__PORT}:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
     pid: host
     ports:
-      - "6332:61208"
+      - "${GLANCES__PORT}:61208"
     environment:
       - GLANCES_OPT=--webserver
     volumes:
