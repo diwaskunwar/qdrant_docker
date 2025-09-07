@@ -14,9 +14,10 @@ services:
       QDRANT__SERVICE__GRPC_PORT: "6334"
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
+      QDRANT__SERVICE__API_KEY: "${QDRANT_API_KEY}"
     command: "./qdrant --uri http://qdrant-node1:6335"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      test: ["CMD", "sh", "-c", "curl -f -H 'api-key: ${QDRANT_API_KEY}' http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,9 +39,10 @@ services:
       QDRANT__SERVICE__GRPC_PORT: "6334"
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
+      QDRANT__SERVICE__API_KEY: "${QDRANT_API_KEY}"
     command: "./qdrant --bootstrap http://qdrant-node1:6335 --uri http://qdrant-node2:6335"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      test: ["CMD", "sh", "-c", "curl -f -H 'api-key: ${QDRANT_API_KEY}' http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -62,9 +64,10 @@ services:
       QDRANT__SERVICE__GRPC_PORT: "6334"
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
+      QDRANT__SERVICE__API_KEY: "${QDRANT_API_KEY}"
     command: "./qdrant --bootstrap http://qdrant-node1:6335 --uri http://qdrant-node3:6335"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      test: ["CMD", "sh", "-c", "curl -f -H 'api-key: ${QDRANT_API_KEY}' http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
