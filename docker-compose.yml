@@ -1,60 +1,75 @@
 services:
-  qdrant_primary:
+  qdrant-node1:
     image: qdrant/qdrant:latest
-    container_name: qdrant_primary
+    container_name: qdrant-node1
+    labels:
+      - "com.qdrant.group=qdrant"
+      - "com.qdrant.node=1"
     volumes:
-      - ${QDRANT__STORAGE__VOLUME}/primary:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml
-      - ./config/config.yaml:/qdrant/config/config.yaml
+      - ./data/node1:/qdrant/storage
     ports:
-      - "${QDRANT__PORT}:6333"
+      - "6333:6333"   # HTTP
     environment:
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
-    command: "./qdrant --config-path /qdrant/config/production.yaml --uri http://qdrant_primary:6335"
+    command: "./qdrant --uri http://qdrant-node1:6335"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - qdrant-net
 
-  qdrant_secondary_1:
+  qdrant-node2:
     image: qdrant/qdrant:latest
-    container_name: qdrant_secondary_1
+    container_name: qdrant-node2
+    labels:
+      - "com.qdrant.group=qdrant"
+      - "com.qdrant.node=2"
     volumes:
-      - ${QDRANT__STORAGE__VOLUME}/secondary_1:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml
-      - ./config/config.yaml:/qdrant/config/config.yaml
+      - ./data/node2:/qdrant/storage
     depends_on:
-      - qdrant_primary
+      - qdrant-node1
     environment:
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
-    command: "./qdrant --config-path /qdrant/config/production.yaml --bootstrap http://qdrant_primary:6335 --uri http://qdrant_secondary_1:6335"
+    command: "./qdrant --bootstrap http://qdrant-node1:6335 --uri http://qdrant-node2:6335"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - qdrant-net
 
-  qdrant_secondary_2:
+  qdrant-node3:
     image: qdrant/qdrant:latest
-    container_name: qdrant_secondary_2
+    container_name: qdrant-node3
+    labels:
+      - "com.qdrant.group=qdrant"
+      - "com.qdrant.node=3"
     volumes:
-      - ${QDRANT__STORAGE__VOLUME}/secondary_2:/qdrant/storage
-      - ./config/production.yaml:/qdrant/config/production.yaml
-      - ./config/config.yaml:/qdrant/config/config.yaml
+      - ./data/node3:/qdrant/storage
     depends_on:
-      - qdrant_primary
+      - qdrant-node1
     environment:
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
       QDRANT__CLUSTER__ENABLED: "true"
       QDRANT__LOG_LEVEL: "INFO"
-    command: "./qdrant --config-path /qdrant/config/production.yaml --bootstrap http://qdrant_primary:6335 --uri http://qdrant_secondary_2:6335"
+    command: "./qdrant --bootstrap http://qdrant-node1:6335 --uri http://qdrant-node3:6335"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - qdrant-net
 
   dozzle:
     image: amir20/dozzle:latest
@@ -65,10 +80,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      # Show only containers from this compose project (default project name is the folder name: qdrant-docker)
-      - DOZZLE_FILTER=label=com.docker.compose.project=qdrant-docker
+      # Show only containers labeled as part of the Qdrant group
+      - DOZZLE_FILTER=label=com.qdrant.group=qdrant
       - DOZZLE_TAILSIZE=3000
       - DOZZLE_LEVEL=info
+    networks:
+      - qdrant-net
 
   glances:
     image: nicolargo/glances:latest-full
@@ -82,3 +99,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /etc/os-release:/etc/os-release:ro
+    networks:
+      - qdrant-net
+
+networks:
+  qdrant-net:
+    driver: bridge
